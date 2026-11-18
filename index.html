@@ -1,0 +1,156 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IMNAAZ AI</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app-container">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+
+        <div class="sidebar-brand">
+            <img src="logo.png" alt="IMNAAZ AI Logo">
+        </div>
+
+        <button id="newChatBtn" class="new-chat-btn" type="button">
+            <span>＋</span> New Chat
+        </button>
+
+        <div class="history-heading">
+            <span>◷</span> Chat History
+        </div>
+
+        <div id="historyList" class="history-list"></div>
+
+        <div class="sidebar-footer">
+            <span class="footer-icon">⚡</span>
+            <div>
+                <strong>Your Smart AI Assistant</strong>
+                <p>Fast • Private • Free</p>
+            </div>
+        </div>
+
+    </aside>
+
+    <!-- MAIN AREA -->
+    <main class="main-area">
+
+        <!-- TOP HEADER -->
+        <header class="top-header">
+
+            <div class="header-brand">
+                <img src="logo.png" alt="IMNAAZ AI">
+            </div>
+
+            <div class="ollama-status">
+                <span>⚡</span>
+                Powered by Ollama
+                <i></i>
+            </div>
+
+        </header>
+
+        <!-- CHAT CONTENT -->
+        <section class="chat-section">
+
+            <div class="welcome-screen">
+
+                <img
+                    src="logo.png"
+                    alt="Original IMNAAZ AI Logo"
+                    class="hero-logo"
+                >
+
+                <h1>Your Intelligent AI Assistant</h1>
+
+                <div class="welcome-message">
+                    <span>👋</span>
+                    Hello! How can I help you today?
+                </div>
+
+                <div class="feature-list">
+                    <div class="feature">
+                        <span>⚡</span> Fast Responses
+                    </div>
+
+                    <div class="feature">
+                        <span>🌐</span> Web Search
+                    </div>
+
+                    <div class="feature">
+                        <span>📄</span> PDF Support
+                    </div>
+
+                    <div class="feature">
+                        <span>🛡️</span> 100% Private
+                    </div>
+                </div>
+
+            </div>
+
+            <div id="chat" class="chat-messages"></div>
+
+        </section>
+
+        <!-- INPUT AREA -->
+        <footer class="bottom-area">
+
+            <div id="pdfInfo" class="pdf-info" hidden>
+                <span id="pdfName">PDF uploaded</span>
+                <button id="removePdfBtn" type="button">Remove PDF</button>
+            </div>
+
+            <div class="input-area">
+
+                <button
+                    id="uploadPdfBtn"
+                    type="button"
+                    title="Upload PDF"
+                >📎</button>
+
+                <input
+                    type="file"
+                    id="pdfInput"
+                    accept=".pdf,application/pdf"
+                    hidden
+                >
+
+                <input
+                    type="text"
+                    id="userInput"
+                    placeholder="Type your message here..."
+                    autocomplete="off"
+                >
+
+                <button id="sendBtn" type="button" title="Send message">
+                    ➤
+                </button>
+
+            </div>
+
+            <p id="uploadStatus" class="upload-status"></p>
+
+            <div class="bottom-buttons">
+
+                <button id="clearBtn" type="button">
+                    🗑 Clear
+                </button>
+
+            </div>
+
+        </footer>
+
+    </main>
+
+</div>
+
+<script src="script.js"></script>
+
+</body>
+</html>
