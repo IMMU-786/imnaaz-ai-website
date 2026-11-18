@@ -1,10 +1,12 @@
 
-from flask import Flask, request, jsonify, send_from_directory
+import os
 import requests
+import re
+
+from flask import Flask, request, jsonify, send_from_directory
 from ddgs import DDGS
 from pypdf import PdfReader
 from io import BytesIO
-import re
 
 app = Flask(__name__, static_folder=None)
 
@@ -13,8 +15,16 @@ app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
 # PDF storage
 pdf_contexts = {}
 
-OLLAMA_URL = "http://localhost:11434/api/chat"
-MODEL_NAME = "llama3.2:3b"
+# Cloudflare Workers AI settings
+CLOUDFLARE_ACCOUNT_ID = os.environ.get("CLOUDFLARE_ACCOUNT_ID")
+CLOUDFLARE_API_TOKEN = os.environ.get("CLOUDFLARE_API_TOKEN")
+
+MODEL_NAME = "@cf/google/gemma-4-26b-a4b-it"
+
+CLOUDFLARE_URL = (
+    f"https://api.cloudflare.com/client/v4/accounts/"
+    f"{CLOUDFLARE_ACCOUNT_ID}/ai/run/{MODEL_NAME}"
+)
 
 SYSTEM_PROMPT = """
 You are IMNAAZ AI, a helpful and intelligent AI assistant.
@@ -288,9 +298,17 @@ def ask():
     if not isinstance(chat_id, str):
         return jsonify({"reply": "Invalid chat ID."}), 400
 
+    # Check Cloudflare settings
+    if not CLOUDFLARE_ACCOUNT_ID or not CLOUDFLARE_API_TOKEN:
+        print("Cloudflare environment variables are missing.")
+
+        return jsonify({
+            "reply": "AI configuration is incomplete. Please contact the website administrator."
+        }), 503
+
     conversation = []
 
-    # Original setting: latest 12 messages
+    # Latest 12 messages
     for item in messages[-12:]:
 
         if not isinstance(item, dict):
@@ -313,7 +331,6 @@ def ask():
     latest_message = conversation[-1]["content"]
 
     # PDF context
-
     pages = pdf_contexts.get(chat_id)
 
     if pages:
@@ -333,7 +350,6 @@ def ask():
             )
 
     # Internet search
-
     if should_search(latest_message):
 
         recent_keywords = [
@@ -364,47 +380,68 @@ def ask():
             + search_context
         )
 
-    # Ollama request
-
-    ollama_messages = [
+    # Cloudflare Workers AI request
+    cloudflare_messages = [
         {
             "role": "system",
             "content": SYSTEM_PROMPT
         }
     ]
 
-    ollama_messages.extend(conversation)
+    cloudflare_messages.extend(conversation)
 
     try:
 
         response = requests.post(
-            OLLAMA_URL,
+            CLOUDFLARE_URL,
+            headers={
+                "Authorization": f"Bearer {CLOUDFLARE_API_TOKEN}",
+                "Content-Type": "application/json"
+            },
             json={
-                "model": MODEL_NAME,
-                "messages": ollama_messages,
-                "stream": False,
-                "keep_alive": "10m",
-                "options": {
-                    "num_ctx": 4096,
-                    "num_predict": 350,
-                    "temperature": 0.4
+                "messages": cloudflare_messages,
+                "max_tokens": 350,
+                "temperature": 0.4,
+                "chat_template_kwargs": {
+                    "enable_thinking": False
                 }
             },
-            timeout=180
+            timeout=120
         )
 
         response.raise_for_status()
 
-        reply = response.json()["message"]["content"]
+        result = response.json()
+
+        if not result.get("success", False):
+            print("Cloudflare API Error:", result.get("errors"))
+            raise ValueError("Cloudflare AI request was unsuccessful.")
+
+        reply = result.get("result", {}).get("response")
+
+        if not reply:
+            print("Unexpected Cloudflare response:", result)
+            raise ValueError("AI returned an empty response.")
 
         return jsonify({"reply": reply})
 
     except requests.RequestException as error:
 
-        print("Ollama Error:", error)
+        print("Cloudflare Connection Error:", error)
+
+        if error.response is not None:
+            print("Cloudflare Response:", error.response.text[:1000])
 
         return jsonify({
             "reply": "AI connection failed. Please try again."
+        }), 503
+
+    except (ValueError, KeyError, TypeError) as error:
+
+        print("Cloudflare AI Error:", error)
+
+        return jsonify({
+            "reply": "AI could not generate a response. Please try again."
         }), 503
 
 
