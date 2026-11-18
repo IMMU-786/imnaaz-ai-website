@@ -417,13 +417,19 @@ def ask():
             print("Cloudflare API Error:", result.get("errors"))
             raise ValueError("Cloudflare AI request was unsuccessful.")
 
-        reply = result.get("result", {}).get("response")
+        # Extract AI response from Cloudflare choices
+        reply = (
+            result.get("result", {})
+            .get("choices", [{}])[0]
+            .get("message", {})
+            .get("content")
+        )
 
-        if not reply:
+        if not isinstance(reply, str) or not reply.strip():
             print("Unexpected Cloudflare response:", result)
             raise ValueError("AI returned an empty response.")
 
-        return jsonify({"reply": reply})
+        return jsonify({"reply": reply.strip()})
 
     except requests.RequestException as error:
 
@@ -436,7 +442,7 @@ def ask():
             "reply": "AI connection failed. Please try again."
         }), 503
 
-    except (ValueError, KeyError, TypeError) as error:
+    except (ValueError, KeyError, TypeError, IndexError) as error:
 
         print("Cloudflare AI Error:", error)
 
